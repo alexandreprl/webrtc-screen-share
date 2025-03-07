@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Screen Sharing</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-end;
+        }
+
+        #header {
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #main {
+            background-color: black;
+            display: flex;
+            flex-direction: column;
+            justify-content: stretch;
+            align-items: stretch;
+            overflow: hidden;
+            padding: 10px;
+            flex: 1;
+        }
+
+        #startMenu {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        #video {
+            display: none;
+            flex: 1;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+<div id="header">
+    <div id="status"></div><button id="fullscreen">Full screen</button>
+</div>
+<div id="main">
+    <div id="startMenu">
+        <button id="startShare">Start Sharing</button>
+        <button id="watchStream">Watch Stream</button>
+    </div>
+    <video id="video" autoplay playsinline></video>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const port = 3000;
+    const socket = io();
+    const peerConnections = {};
+    const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+    const videoElement = document.getElementById("video");
+    const startShareButton = document.getElementById("startShare");
+    const watchStreamButton = document.getElementById("watchStream");
+    const fullscreenButton = document.getElementById("fullscreen");
+    const startMenu = document.getElementById("startMenu");
+    const statusElement = document.getElementById("status");
+
+    async function getLocalIPv4() {
+        const response = await fetch("/ip");
+        const data = await response.json();
+        return data.ip;
+    }
+
+    async function handleStartSharing() {
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            videoElement.srcObject = stream;
+
+            // Hide start menu and show video
+            startMenu.style.display = "none";
+            videoElement.style.display = "block";
+
+            const ip = await getLocalIPv4();
+            statusElement.innerText = `Sharing... Connect on another device using this IP: http://${ip}:${port}`;
+
+            socket.emit("broadcaster");
+
+            socket.on("watcher", (id) => {
+                const peerConnection = new RTCPeerConnection(config);
+                peerConnections[id] = peerConnection;
+
+                stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+                peerConnection.onicecandidate = event => {
+                    if (event.candidate) {
+                        socket.emit("candidate", id, event.candidate);
+                    }
+                };
+
+                peerConnection.createOffer().then(offer => {
+                    peerConnection.setLocalDescription(offer);
+                    socket.emit("offer", id, offer);
+                });
+            });
+
+            socket.on("answer", (id, answer) => {
+                peerConnections[id].setRemoteDescription(new RTCSessionDescription(answer));
+            });
+
+            socket.on("candidate", (id, candidate) => {
+                peerConnections[id].addIceCandidate(new RTCIceCandidate(candidate));
+            });
+
+            socket.on("broadcasterDisconnect", (id) => {
+                if (peerConnections[id]) {
+                    peerConnections[id].close();
+                    delete peerConnections[id];
+                }
+            });
+
+        } catch (error) {
+            console.error("Error starting sharing:", error);
+        }
+    }
+
+    function handleWatchStream() {
+        startMenu.style.display = "none";
+        videoElement.style.display = "block";
+        statusElement.innerText = "Loading...";
+
+        console.log("Requesting to watch stream...");
+        socket.emit("watcher");
+
+        const peerConnection = new RTCPeerConnection(config);
+        peerConnections["broadcaster"] = peerConnection;
+
+        peerConnection.onicecandidate = event => {
+            if (event.candidate) {
+                socket.emit("candidate", "broadcaster", event.candidate);
+            }
+        };
+
+        peerConnection.ontrack = event => {
+            console.log("Receiving stream from broadcaster...");
+            videoElement.srcObject = event.streams[0];
+            statusElement.innerText = "Watching stream";
+        };
+
+        socket.on("offer", async (id, offer) => {
+            console.log(`Received offer from ${id}`);
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.emit("answer", id, answer);
+        });
+
+        socket.on("candidate", (id, candidate) => {
+            peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        });
+    }
+
+    function handleFullScreen() {
+        if (videoElement.requestFullscreen) {
+            videoElement.requestFullscreen().catch(err => console.log("Full-screen request failed:", err));
+        } else if (videoElement.webkitRequestFullscreen) {
+            videoElement.webkitRequestFullscreen(); // Safari
+        } else if (videoElement.mozRequestFullScreen) {
+            videoElement.mozRequestFullScreen(); // Firefox
+        } else if (videoElement.msRequestFullscreen) {
+            videoElement.msRequestFullscreen(); // IE/Edge
+        }
+    }
+
+    startShareButton.onclick = handleStartSharing;
+    watchStreamButton.onclick = handleWatchStream;
+    fullscreenButton.onclick = handleFullScreen;
+
+</script>
+</body>
+
+</html>
