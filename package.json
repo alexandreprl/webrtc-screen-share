@@ -1,8 +1,24 @@
 {
   "name": "webrtc-screen-share",
   "target": "node",
+  "pkg": {
+    "scripts": "*.js",
+    "assets": [
+      "./public/index.html"
+    ],
+    "targets": [
+      "node18-linux-arm64",
+      "node18-macos-arm64",
+      "node18-win-arm64",
+      "node18-linux-x64",
+      "node18-macos-x64",
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
+  },
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "main.js",
+  "bin": "main.js",
   "scripts": {
     "build": "webpack",
     "start": "dist/bundle.js"
