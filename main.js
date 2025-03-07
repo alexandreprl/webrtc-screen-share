@@ -4,8 +4,8 @@ const socketIo = require("socket.io");
 const os = require("os");
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
+const main = http.createServer(app);
+const io = socketIo(main);
 
 app.use(express.static("public"));
 
@@ -77,4 +77,4 @@ app.get("/ip", (req, res) => {
     res.json({ ip: localIPv4Address });
 });
 
-server.listen(3000, () => console.log("Server running on http://localhost:3000"));
+main.listen(3000, () => console.log("Server running on http://localhost:3000"));

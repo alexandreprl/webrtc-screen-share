@@ -24,10 +24,10 @@ A simple WebRTC application for screen sharing between two or more web browsers.
 
 ## Usage
 
-1.  Start the server:
+1.  Start the main:
 
     ```bash
-    node server.js
+    node main.js
     ```
 
 2.  Open a web browser and go to `http://localhost:3000`.
@@ -60,7 +60,7 @@ If you want to share your screen with someone on a different network, you can us
 
 This application uses WebRTC (Web Real-Time Communication) to establish a peer-to-peer connection between browsers.
 
--   The server acts as a signaling server, facilitating the initial connection setup by exchanging SDP (Session Description Protocol) offers and answers, and ICE (Interactive Connectivity Establishment) candidates.
+-   The main acts as a signaling main, facilitating the initial connection setup by exchanging SDP (Session Description Protocol) offers and answers, and ICE (Interactive Connectivity Establishment) candidates.
 -   Once the connection is established, the screen sharing data is streamed directly between the browsers.
 
 ## Notes
