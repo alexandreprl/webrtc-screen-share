@@ -56,6 +56,10 @@ If you want to share your screen with someone on a different network, you can us
 
     For example, if ngrok gives you `https://abc123def.ngrok.io`, then your friend would go to `https://abc123def.ngrok.io`
 
+# Build application
+
+`pkg .`
+
 ## How it Works
 
 This application uses WebRTC (Web Real-Time Communication) to establish a peer-to-peer connection between browsers.
