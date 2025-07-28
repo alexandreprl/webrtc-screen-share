@@ -81,4 +81,4 @@ Feel free to contribute to this project by submitting pull requests or opening i
 
 ## License
 
-[MIT License](LICENSE.txt) (Replace with your actual license if you have one)
+[MIT License](LICENSE.txt)
